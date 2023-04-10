@@ -2,12 +2,13 @@ package com.google.codelabs.buildyourfirstmap
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.PackageManager
-import android.location.Location
-import android.os.Build
+import android.database.Cursor
 import android.os.Bundle
 import android.os.Looper
 import android.util.Log
+import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -17,6 +18,11 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
+import android.location.Location
+import android.os.Build
+import com.google.android.gms.location.*
+import com.google.android.gms.maps.model.*
+
 
 
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -28,8 +34,12 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             UPDATE_INTERVAL_IN_MILLISECONDS / 2
     }
 
-    var mGoogleMap: GoogleMap? = null
+
+    private lateinit var button: Button
+    private var mGoogleMap: GoogleMap? = null
     private var myLongitude: Double? = null
+    private var routeId: Int = 0
+    private lateinit var db: DBHelper
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private var defaultLatLng: LatLng = LatLng(0.0, 0.0)
     private var lastLatLng: LatLng = defaultLatLng
@@ -42,15 +52,18 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 lastLatLng = LatLng(locationResult.lastLocation.latitude, locationResult.lastLocation.longitude)
                 newLatLng = LatLng(locationResult.lastLocation.latitude, locationResult.lastLocation.longitude)
             }
+            if(routeId == 0) setRouteId();
+            db.addData(newLatLng.latitude, newLatLng.longitude, routeId);
+
+            /*
+            logDatabase()
+            */
 
             newLatLng = LatLng(locationResult.lastLocation.latitude, locationResult.lastLocation.longitude)
-            Log.i("LOG:maps", "$mGoogleMap")
             if(mGoogleMap != null){
                 addPolyline(mGoogleMap, lastLatLng, newLatLng)
             }
             lastLatLng = newLatLng
-            Log.i("LOG:longitude", "${locationResult.lastLocation.longitude}")
-            Log.i("LOG:latitude", "${locationResult.lastLocation.latitude}")
 
             super.onLocationResult(locationResult)
         }
@@ -59,6 +72,27 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             super.onLocationAvailability(locationAvailability)
         }
 
+    }
+
+    fun logDatabase(){
+        val cursor: Cursor = db.getData();
+        var data = cursor.moveToFirst()
+        while (data) {
+            val lng = cursor.getDouble(cursor.getColumnIndex("longitude"))
+            val lat = cursor.getDouble(cursor.getColumnIndex("latitude"))
+            Log.i("LOG:long", "$lng")
+            Log.i("LOG:lat", "$lat")
+            data = cursor.moveToNext()
+        }
+        cursor.close()
+    }
+
+    fun setRouteId(){
+        val cursor: Cursor = db.getLastData();
+        cursor.moveToFirst()
+        val index = cursor.getColumnIndex("routeId")
+        routeId =  if (index < 0) 1 else cursor.getInt(index) + 1
+        cursor.close()
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
@@ -70,6 +104,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        db = DBHelper(this, null)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         val permissionState = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -79,8 +114,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
        requestLocationUpdates()
 
+        button = findViewById(R.id.button)
+        button.setOnClickListener {
+            val intent = Intent(this, ListActivity::class.java)
+            startActivity(intent);
+        }
+
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map_fragment) as? SupportMapFragment
         mapFragment?.getMapAsync(this)
+
     }
 
 
@@ -109,19 +151,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
-
-    @SuppressLint("MissingPermission")
-    private fun getLocation() {
-        fusedLocationClient.lastLocation.addOnSuccessListener { location : Location? ->
-            location?.let {
-                myLongitude = it.longitude
-               /*
-                latLngIni = LatLng(it.latitude, it.longitude)
-                */
-            }
-            Log.i("LOG:ini", "$myLongitude")
-        }
-    }
 
     private fun createLocationRequest() = LocationRequest.create().apply {
         interval = UPDATE_INTERVAL_IN_MILLISECONDS
