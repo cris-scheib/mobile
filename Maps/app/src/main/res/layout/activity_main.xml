@@ -13,10 +13,26 @@
         android:layout_height="match_parent"
         map:mapId="YOUR_MAP_ID" />
 
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:gravity="center_horizontal"
+        android:orientation="horizontal">
 
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        <Button
+            android:id="@+id/button_list"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|right"
+            android:layout_margin="20dp"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginEnd="20dp"
+            android:layout_marginBottom="20dp"
+            android:background="@color/cyan"
+            android:text="Iniciar rota"
+            android:textColor="@android:color/white" />
 
         <Button
             android:id="@+id/button"
@@ -28,6 +44,6 @@
             android:text="Histórico"
             android:textColor="@android:color/white" />
 
-    </RelativeLayout>
+    </LinearLayout>
 
 </FrameLayout>
