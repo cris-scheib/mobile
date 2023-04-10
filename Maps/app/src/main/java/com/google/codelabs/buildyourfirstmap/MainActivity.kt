@@ -34,10 +34,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             UPDATE_INTERVAL_IN_MILLISECONDS / 2
     }
 
-
-    private lateinit var button: Button
+    private var list_route = false
+    private lateinit var button_history: Button
+    private lateinit var button_list: Button
     private var mGoogleMap: GoogleMap? = null
-    private var myLongitude: Double? = null
     private var routeId: Int = 0
     private lateinit var db: DBHelper
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -89,9 +89,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     fun setRouteId(){
         val cursor: Cursor = db.getLastData();
-        cursor.moveToFirst()
-        val index = cursor.getColumnIndex("routeId")
-        routeId =  if (index < 0) 1 else cursor.getInt(index) + 1
+        if(cursor.moveToFirst()) {
+            val index = cursor.getColumnIndex("routeId")
+            routeId = if (index < 0) 1 else cursor.getInt(index) + 1
+            Log.i("LOG:route", "$routeId")
+        }else{
+            routeId = 1
+        }
         cursor.close()
     }
 
@@ -112,12 +116,26 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), REQUEST_PERMISSIONS_REQUEST_CODE)
         }
 
-       requestLocationUpdates()
 
-        button = findViewById(R.id.button)
-        button.setOnClickListener {
+
+        button_history = findViewById(R.id.button)
+        button_history.setOnClickListener {
             val intent = Intent(this, ListActivity::class.java)
             startActivity(intent);
+        }
+
+        button_list = findViewById(R.id.button_list)
+        button_list.setOnClickListener {
+            if(!list_route){
+                requestLocationUpdates()
+                button_list.setText("Finalizar rota");
+            }else{
+                removeLocationUpdates()
+                routeId = 0
+                button_list.setText("Iniciar rota");
+            }
+            list_route = !list_route
+
         }
 
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map_fragment) as? SupportMapFragment
@@ -138,7 +156,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
         val bounds = LatLngBounds.builder()
         bounds.include(newLatLng)
-        mGoogleMap?.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds.build(), 20))
+        mGoogleMap?.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds.build(), 2))
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
