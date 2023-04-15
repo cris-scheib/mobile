@@ -5,62 +5,82 @@ import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.util.Log
 
 class DBHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) :
     SQLiteOpenHelper(context, DATABASE_NAME, factory, DATABASE_VERSION) {
 
     override fun onCreate(db: SQLiteDatabase) {
-        val query = ("CREATE TABLE " + TABLE_NAME + " ("
-                + ID_COL + " INTEGER PRIMARY KEY, " +
-                ROUT_COL + " INTEGER," +
-                LONG_COl + " DECIMAL," +
-                LAT_COL + " DECIMAL" + ")")
+        val routesQuery = ("CREATE TABLE $ROUTES_TABLE_NAME (" +
+                ID_COL + " INTEGER PRIMARY KEY, " +
+                NAME + " TEXT" + ");")
 
-        db.execSQL(query)
+        val positionsQuery = ("CREATE TABLE $POSITIONS_TABLE_NAME  (" +
+                ID_COL + " INTEGER PRIMARY KEY, " +
+                ROUT_COL + " INTEGER, " +
+                LONG_COl + " DECIMAL, " +
+                LAT_COL + " DECIMAL, " +
+                "FOREIGN KEY ($ROUT_COL) REFERENCES $ROUTES_TABLE_NAME ($ID_COL));")
+
+        Log.e("LOG", "--- $positionsQuery")
+        db.execSQL(routesQuery)
+        db.execSQL(positionsQuery)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, p1: Int, p2: Int) {
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_NAME")
+        db.execSQL("DROP TABLE IF EXISTS $ROUTES_TABLE_NAME")
+        db.execSQL("DROP TABLE IF EXISTS $POSITIONS_TABLE_NAME")
         onCreate(db)
     }
 
-    fun addData(lat: Double, long: Double, routeId: Int) {
+    fun addDataRoute(id: Int, name: String) {
+        val values = ContentValues()
+        values.put(ID_COL, id)
+        values.put(NAME, name)
 
+        val db = this.writableDatabase
+        db.insert(ROUTES_TABLE_NAME, null, values)
+        db.close()
+    }
+
+    fun addDataPosition(lat: Double, long: Double, routeId: Int) {
         val values = ContentValues()
         values.put(LONG_COl, long)
         values.put(LAT_COL, lat)
         values.put(ROUT_COL, routeId)
 
         val db = this.writableDatabase
-        db.insert(TABLE_NAME, null, values)
+        db.insert(POSITIONS_TABLE_NAME, null, values)
         db.close()
     }
 
-    fun getData(): Cursor {
+    fun getData(table: String): Cursor {
         val db = this.readableDatabase
-        return db.rawQuery("SELECT * FROM $TABLE_NAME", null)
+        return db.rawQuery("SELECT * FROM $table", null)
     }
 
-    fun getGroupedData(column: String): Cursor {
+    fun getGroupedData(table: String, column: String): Cursor {
         val db = this.readableDatabase
-        return db.rawQuery("SELECT * FROM $TABLE_NAME GROUP BY $column", null)
+        return db.rawQuery("SELECT * FROM $table GROUP BY $column", null)
     }
 
-    fun getRouteData(routeId: Int): Cursor {
+    fun getPositionsData(routeId: Int): Cursor {
         val db = this.readableDatabase
-        return db.rawQuery("SELECT * FROM $TABLE_NAME WHERE routeId = $routeId ", null)
+        return db.rawQuery("SELECT * FROM $POSITIONS_TABLE_NAME WHERE $ROUT_COL = $routeId ", null)
     }
 
-    fun getLastData(): Cursor {
+    fun getLastData(table: String): Cursor {
         val db = this.readableDatabase
-        return db.rawQuery("SELECT * FROM $TABLE_NAME ORDER BY id DESC LIMIT 1", null)
+        return db.rawQuery("SELECT * FROM $table ORDER BY $ID_COL DESC LIMIT 1", null)
     }
 
     companion object {
         private const val DATABASE_NAME = "MAPS"
         private const val DATABASE_VERSION = 1
-        const val TABLE_NAME = "routes_table"
+        const val ROUTES_TABLE_NAME = "routes_table"
+        const val POSITIONS_TABLE_NAME = "positions_table"
         const val ID_COL = "id"
+        const val NAME = "name"
         const val LONG_COl = "longitude"
         const val LAT_COL = "latitude"
         const val ROUT_COL = "routeId"

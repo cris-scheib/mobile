@@ -18,11 +18,6 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
-import android.location.Location
-import android.os.Build
-import com.google.android.gms.location.*
-import com.google.android.gms.maps.model.*
-
 
 
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -52,8 +47,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 lastLatLng = LatLng(locationResult.lastLocation.latitude, locationResult.lastLocation.longitude)
                 newLatLng = LatLng(locationResult.lastLocation.latitude, locationResult.lastLocation.longitude)
             }
-            if(routeId == 0) setRouteId();
-            db.addData(newLatLng.latitude, newLatLng.longitude, routeId);
+            db.addDataPosition(newLatLng.latitude, newLatLng.longitude, routeId);
+
 
             /*
             logDatabase()
@@ -75,7 +70,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     fun logDatabase(){
-        val cursor: Cursor = db.getData();
+        val cursor: Cursor = db.getData("positions_table");
         var data = cursor.moveToFirst()
         while (data) {
             val lng = cursor.getDouble(cursor.getColumnIndex("longitude"))
@@ -88,15 +83,16 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     fun setRouteId(){
-        val cursor: Cursor = db.getLastData();
+        val cursor: Cursor = db.getLastData("routes_table");
         if(cursor.moveToFirst()) {
-            val index = cursor.getColumnIndex("routeId")
+            val index = cursor.getColumnIndex("id")
             routeId = if (index < 0) 1 else cursor.getInt(index) + 1
             Log.i("LOG:route", "$routeId")
         }else{
             routeId = 1
         }
         cursor.close()
+        db.addDataRoute(routeId, "Route $routeId");
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
@@ -116,8 +112,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), REQUEST_PERMISSIONS_REQUEST_CODE)
         }
 
-
-
         button_history = findViewById(R.id.button)
         button_history.setOnClickListener {
             val intent = Intent(this, ListActivity::class.java)
@@ -127,6 +121,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         button_list = findViewById(R.id.button_list)
         button_list.setOnClickListener {
             if(!list_route){
+                setRouteId()
                 requestLocationUpdates()
                 button_list.setText("Finalizar rota");
             }else{
@@ -135,7 +130,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 button_list.setText("Iniciar rota");
             }
             list_route = !list_route
-
         }
 
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map_fragment) as? SupportMapFragment

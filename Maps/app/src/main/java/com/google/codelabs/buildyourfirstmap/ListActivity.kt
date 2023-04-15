@@ -1,5 +1,6 @@
 package com.google.codelabs.buildyourfirstmap
 
+import android.content.Intent
 import android.database.Cursor
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -17,14 +18,12 @@ class ListActivity : AppCompatActivity() {
 
         val db = DBHelper(this, null)
 
-        val cursorRoutes: Cursor = db.getGroupedData("routeId");
-
-
+        val cursorRoutes: Cursor = db.getData("routes_table");
         var route = cursorRoutes.moveToFirst()
         while (route) {
-            val routeId = cursorRoutes.getInt(cursorRoutes.getColumnIndex("routeId"))
-
-            val cursorPath: Cursor = db.getRouteData(routeId);
+            val routeName = cursorRoutes.getString(cursorRoutes.getColumnIndex("name"))
+            /*
+            val cursorPath: Cursor = db.getPositionsData(routeId);
             var path = cursorPath.moveToFirst()
             while (path) {
                 val lat = cursorPath.getDouble(cursorPath.getColumnIndex("latitude"))
@@ -33,8 +32,10 @@ class ListActivity : AppCompatActivity() {
                 path = cursorPath.moveToNext()
             }
             cursorPath.close()
-            routes += routeLatLong
             routeLatLong = ""
+            */
+            routes += routeName
+
             route = cursorRoutes.moveToNext()
         }
 
@@ -47,5 +48,11 @@ class ListActivity : AppCompatActivity() {
             android.R.layout.simple_list_item_1, routes
         )
         mListView.adapter = arrayAdapter
+
+        /*mListView.setOnItemClickListener { parent, view, position, id ->
+            val element = arrayAdapter.getPosition(position) // The item that was clicked
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+        }*/
     }
 }
