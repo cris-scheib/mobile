@@ -4,6 +4,7 @@ import android.content.Intent
 import android.database.Cursor
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.widget.ArrayAdapter
 import android.widget.ListView
 
@@ -14,6 +15,7 @@ class ListActivity : AppCompatActivity() {
 
         val arrayAdapter: ArrayAdapter<*>
         var routes = arrayOf<String>()
+        var idMap = arrayOf<Int>()
         var routeLatLong = ""
 
         val db = DBHelper(this, null)
@@ -22,6 +24,7 @@ class ListActivity : AppCompatActivity() {
         var route = cursorRoutes.moveToFirst()
         while (route) {
             val routeName = cursorRoutes.getString(cursorRoutes.getColumnIndex("name"))
+            val routeId = cursorRoutes.getInt(cursorRoutes.getColumnIndex("id"))
             /*
             val cursorPath: Cursor = db.getPositionsData(routeId);
             var path = cursorPath.moveToFirst()
@@ -34,6 +37,7 @@ class ListActivity : AppCompatActivity() {
             cursorPath.close()
             routeLatLong = ""
             */
+            idMap += routeId
             routes += routeName
 
             route = cursorRoutes.moveToNext()
@@ -49,10 +53,10 @@ class ListActivity : AppCompatActivity() {
         )
         mListView.adapter = arrayAdapter
 
-        /*mListView.setOnItemClickListener { parent, view, position, id ->
-            val element = arrayAdapter.getPosition(position) // The item that was clicked
+        mListView.setOnItemClickListener { parent, view, position, id ->
             val intent = Intent(this, MainActivity::class.java)
+            intent.putExtra("route", idMap[position])
             startActivity(intent)
-        }*/
+        }
     }
 }

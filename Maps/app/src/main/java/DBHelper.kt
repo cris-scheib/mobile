@@ -22,9 +22,17 @@ class DBHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) :
                 LAT_COL + " DECIMAL, " +
                 "FOREIGN KEY ($ROUT_COL) REFERENCES $ROUTES_TABLE_NAME ($ID_COL));")
 
-        Log.e("LOG", "--- $positionsQuery")
+        val alertsQuery = ("CREATE TABLE $ALERTS_TABLE_NAME (" +
+                ID_COL + " INTEGER PRIMARY KEY, " +
+                POSIT_COL + " INTEGER, " +
+                NAME + " TEXT, " +
+                DESCRIPTION + " TEXT, " +
+                IMAGE + " TEXT, " +
+                "FOREIGN KEY ($POSIT_COL) REFERENCES $POSITIONS_TABLE_NAME ($ID_COL));")
+
         db.execSQL(routesQuery)
         db.execSQL(positionsQuery)
+        db.execSQL(alertsQuery)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, p1: Int, p2: Int) {
@@ -54,6 +62,18 @@ class DBHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) :
         db.close()
     }
 
+    fun addDataAlert(name: String, description: String, image: String, positionId: Int) {
+        val values = ContentValues()
+        values.put(NAME, name)
+        values.put(DESCRIPTION, description)
+        values.put(IMAGE, image)
+        values.put(POSIT_COL, positionId)
+
+        val db = this.writableDatabase
+        db.insert(ALERTS_TABLE_NAME, null, values)
+        db.close()
+    }
+
     fun getData(table: String): Cursor {
         val db = this.readableDatabase
         return db.rawQuery("SELECT * FROM $table", null)
@@ -69,6 +89,11 @@ class DBHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) :
         return db.rawQuery("SELECT * FROM $POSITIONS_TABLE_NAME WHERE $ROUT_COL = $routeId ", null)
     }
 
+    fun getDataWhere(table: String, where:String): Cursor {
+        val db = this.readableDatabase
+        return db.rawQuery("SELECT * FROM $table WHERE $where ", null)
+    }
+
     fun getLastData(table: String): Cursor {
         val db = this.readableDatabase
         return db.rawQuery("SELECT * FROM $table ORDER BY $ID_COL DESC LIMIT 1", null)
@@ -79,14 +104,15 @@ class DBHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) :
         private const val DATABASE_VERSION = 1
         const val ROUTES_TABLE_NAME = "routes_table"
         const val POSITIONS_TABLE_NAME = "positions_table"
+        const val ALERTS_TABLE_NAME = "alerts_table"
         const val ID_COL = "id"
         const val NAME = "name"
+        const val DESCRIPTION = "description"
         const val LONG_COl = "longitude"
         const val LAT_COL = "latitude"
+        const val IMAGE = "image"
         const val ROUT_COL = "routeId"
+        const val POSIT_COL = "positionId"
     }
 }
 
-/*
-*  rota, lat, long
-* */

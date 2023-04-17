@@ -30,15 +30,69 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private var list_route = false
-    private lateinit var button_history: Button
+    private lateinit var button_action: Button
     private lateinit var button_list: Button
     private var mGoogleMap: GoogleMap? = null
     private var routeId: Int = 0
+    private var lastPositionId: Int = 0
     private lateinit var db: DBHelper
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private var defaultLatLng: LatLng = LatLng(0.0, 0.0)
     private var lastLatLng: LatLng = defaultLatLng
     private var newLatLng: LatLng = defaultLatLng
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        db = DBHelper(this, null)
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        val bundle = intent.extras
+        if(bundle != null){
+            val routeId = bundle.getInt("route")
+            buildRoute(routeId)
+        }
+
+
+        val permissionState = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (permissionState != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), REQUEST_PERMISSIONS_REQUEST_CODE)
+        }
+
+        button_action = findViewById(R.id.button_action)
+        button_action.setOnClickListener {
+            if(list_route){
+                val intent = Intent(this, ActionActivity::class.java)
+                intent.putExtra("position", "$lastPositionId")
+                startActivity(intent);
+            }else{
+                val intent = Intent(this, ListActivity::class.java)
+                startActivity(intent);
+            }
+
+        }
+
+        button_list = findViewById(R.id.button_list)
+        button_list.setOnClickListener {
+            if(!list_route){
+                setRouteId()
+                requestLocationUpdates()
+                button_list.setText("Finalizar rota");
+                button_action.setText("Criar alerta");
+            }else{
+                removeLocationUpdates()
+                routeId = 0
+                button_list.setText("Iniciar rota");
+                button_action.setText("Histórico");
+            }
+            list_route = !list_route
+        }
+
+        val mapFragment = supportFragmentManager.findFragmentById(R.id.map_fragment) as? SupportMapFragment
+        mapFragment?.getMapAsync(this)
+
+    }
 
     private val mCallBack = object: LocationCallback(){
         override fun onLocationResult(locationResult: LocationResult) {
@@ -48,7 +102,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 newLatLng = LatLng(locationResult.lastLocation.latitude, locationResult.lastLocation.longitude)
             }
             db.addDataPosition(newLatLng.latitude, newLatLng.longitude, routeId);
-
+            getLastPositionId();
 
             /*
             logDatabase()
@@ -95,46 +149,19 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         db.addDataRoute(routeId, "Route $routeId");
     }
 
-    override fun onMapReady(googleMap: GoogleMap) {
-        mGoogleMap = googleMap
+    fun getLastPositionId(){
+        val cursor: Cursor = db.getLastData("positions_table");
+        if(cursor.moveToFirst()) {
+            val index = cursor.getColumnIndex("id")
+            lastPositionId = if (index < 0) 0 else cursor.getInt(index)
+        }else{
+            lastPositionId = 0
+        }
+        cursor.close()
     }
 
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
-        db = DBHelper(this, null)
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-
-        val permissionState = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-        if (permissionState != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), REQUEST_PERMISSIONS_REQUEST_CODE)
-        }
-
-        button_history = findViewById(R.id.button)
-        button_history.setOnClickListener {
-            val intent = Intent(this, ListActivity::class.java)
-            startActivity(intent);
-        }
-
-        button_list = findViewById(R.id.button_list)
-        button_list.setOnClickListener {
-            if(!list_route){
-                setRouteId()
-                requestLocationUpdates()
-                button_list.setText("Finalizar rota");
-            }else{
-                removeLocationUpdates()
-                routeId = 0
-                button_list.setText("Iniciar rota");
-            }
-            list_route = !list_route
-        }
-
-        val mapFragment = supportFragmentManager.findFragmentById(R.id.map_fragment) as? SupportMapFragment
-        mapFragment?.getMapAsync(this)
-
+    override fun onMapReady(googleMap: GoogleMap) {
+        mGoogleMap = googleMap
     }
 
 
@@ -183,6 +210,22 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         } catch (ex: SecurityException) {
             Log.e("LOG", "Lost location permission. Could not request updates. $ex")
         }
+    }
+
+    private fun buildRoute(routeId: Int) {
+
+        val cursor: Cursor = db.getDataWhere("positions_table", " routeId  = $routeId");
+        var data = cursor.moveToFirst()
+        while (data) {
+            val lng = cursor.getDouble(cursor.getColumnIndex("longitude"))
+            val lat = cursor.getDouble(cursor.getColumnIndex("latitude"))
+
+
+            Log.i("LOG:long", "$lng")
+            Log.i("LOG:lat", "$lat")
+            data = cursor.moveToNext()
+        }
+        cursor.close()
     }
 
     private fun removeLocationUpdates() {

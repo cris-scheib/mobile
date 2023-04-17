@@ -35,8 +35,8 @@
             android:textColor="@android:color/white" />
 
         <Button
-            android:id="@+id/button"
-            android:layout_width="120dp"
+            android:id="@+id/button_action"
+            android:layout_width="150dp"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|right"
             android:layout_margin="20dp"
