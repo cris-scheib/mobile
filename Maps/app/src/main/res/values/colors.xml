@@ -17,6 +17,6 @@
 
 <resources>
   <color name="cyan">#03DAC5</color>
-  <color name="blue">#0000EE</color>
-  <color name="red">#FFEE0000</color>
+  <color name="sec">#6ba7ff</color>
+  <color name="main">#60d67c</color>
 </resources>

@@ -172,7 +172,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     lastLatLng,
                     newLatLng
                 )
-                .color(ContextCompat.getColor(applicationContext,R.color.cyan))
+                .color(ContextCompat.getColor(applicationContext,R.color.sec))
         )
 
         val bounds = LatLngBounds.builder()

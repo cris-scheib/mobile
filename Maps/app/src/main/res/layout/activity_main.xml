@@ -30,7 +30,7 @@
             android:layout_marginTop="20dp"
             android:layout_marginEnd="20dp"
             android:layout_marginBottom="20dp"
-            android:background="@color/cyan"
+            android:background="@color/main"
             android:text="Iniciar rota"
             android:textColor="@android:color/white" />
 
@@ -40,7 +40,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|right"
             android:layout_margin="20dp"
-            android:background="@color/cyan"
+            android:background="@color/main"
             android:text="Histórico"
             android:textColor="@android:color/white" />
 
