@@ -18,19 +18,22 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
+import kotlin.math.abs
 
 
-class MainActivity : AppCompatActivity(), OnMapReadyCallback {
+class MainActivity : AppCompatActivity(), GoogleMap.OnMarkerClickListener, OnMapReadyCallback {
 
     companion object {
         private const val REQUEST_PERMISSIONS_REQUEST_CODE = 1
         private const val ZOOM_MAP = .001
+        private const val PRECIS_TOL = .00002
         private const val UPDATE_INTERVAL_IN_MILLISECONDS = 10000L
         private const val FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS =
             UPDATE_INTERVAL_IN_MILLISECONDS / 2
     }
 
-    private lateinit var button_new_comp: Button
+    private lateinit var buttonNew: Button
+    private lateinit var buttonAbout: Button
     private var mGoogleMap: GoogleMap? = null
     private lateinit var db: DBHelper
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -48,28 +51,24 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         db = DBHelper(this, null)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-       /*
-        val bundle = intent.extras
-        if(bundle != null){
-            val routeId = bundle.getInt("route")
-            buildRoute(routeId)
-        }
-        */
-
-
         val permissionState = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
         if (permissionState != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), REQUEST_PERMISSIONS_REQUEST_CODE)
         }
 
-
         requestLocationUpdates()
 
-        button_new_comp = findViewById(R.id.button_new_comp)
-        button_new_comp.setOnClickListener {
+        buttonNew = findViewById(R.id.button_new_comp)
+        buttonNew.setOnClickListener {
             val intent = Intent(this, ActionActivity::class.java)
             intent.putExtra("latitude", "$latesteLat")
             intent.putExtra("longitude", "$latesteLong")
+            startActivity(intent);
+        }
+
+        buttonAbout = findViewById(R.id.button_about)
+        buttonAbout.setOnClickListener {
+            val intent = Intent(this, AboutActivity::class.java)
             startActivity(intent);
         }
 /*
@@ -97,13 +96,17 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private val mCallBack = object: LocationCallback(){
         override fun onLocationResult(locationResult: LocationResult) {
-            if(locationResult.lastLocation.latitude != latesteLat && locationResult.lastLocation.longitude != latesteLong){
+            val precisionLat = locationResult.lastLocation.latitude - latesteLat
+            val precisionLong = locationResult.lastLocation.longitude - latesteLong
+            if(abs(precisionLat) > PRECIS_TOL && abs(precisionLong) > PRECIS_TOL){
                 latesteLat = locationResult.lastLocation.latitude
                 latesteLong = locationResult.lastLocation.longitude
                 if(mGoogleMap != null){
                     updateLocal(mGoogleMap, latesteLat, latesteLong)
-                    addMarkers(mGoogleMap)
                 }
+            }
+            if(mGoogleMap != null){
+                addMarkers(mGoogleMap)
             }
 
             super.onLocationResult(locationResult)
@@ -194,13 +197,20 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             )
 
             marker?.tag = id
-
-            Log.i("LOG:long", "$marker")
-            Log.i("LOG:long", "$lng")
-            Log.i("LOG:lat", "$lat")
             data = cursor.moveToNext()
         }
+        googleMap?.setOnMarkerClickListener(this)
         cursor.close()
+    }
+
+    override fun onMarkerClick(marker: Marker): Boolean {
+        val intent = Intent(this, DetailActivity::class.java)
+
+        val position = marker.getPosition()
+        intent.putExtra("latitude", "${position.latitude}")
+        intent.putExtra("longitude", "${position.longitude}")
+        startActivity(intent);
+        return false;
     }
 
     private fun addPolyline(googleMap: GoogleMap?, lastLatLng: LatLng, newLatLng: LatLng) {

@@ -52,9 +52,9 @@ class DBHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) :
         return db.rawQuery("SELECT * FROM $table GROUP BY $column", null)
     }
 
-        fun getDataWhere(table: String, where:String): Cursor {
+    fun getDataByPosition(latitude: Double, longitude: Double): Cursor {
         val db = this.readableDatabase
-        return db.rawQuery("SELECT * FROM $table WHERE $where ", null)
+        return db.rawQuery("SELECT * FROM $COMPLAINTS_TABLE_NAME WHERE  $LAT_COL = $latitude AND $LONG_COl = $longitude", null)
     }
 
     fun getLastData(table: String): Cursor {

@@ -29,6 +29,7 @@ class ActionActivity : AppCompatActivity() {
     private lateinit var button_camera_sec: Button
     private lateinit var button_save: Button
     private lateinit var text_name: EditText
+    private lateinit var buttonBack: Button
     private var image: String? = null
     private var image_sec: String? = null
     private var is_image_sec: Boolean = false
@@ -51,6 +52,10 @@ class ActionActivity : AppCompatActivity() {
         button_camera = findViewById(R.id.button_camera)
         button_camera_sec = findViewById(R.id.button_camera_sec)
 
+        buttonBack = findViewById(R.id.button_new_back)
+        buttonBack.setOnClickListener {
+            finish();
+        }
 
         button_save.setOnClickListener {
             text_name = findViewById(R.id.text_name) as EditText
