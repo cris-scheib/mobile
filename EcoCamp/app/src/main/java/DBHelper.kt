@@ -25,6 +25,7 @@ class DBHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) :
 
     override fun onUpgrade(db: SQLiteDatabase, p1: Int, p2: Int) {
         db.execSQL("DROP TABLE IF EXISTS $COMPLAINTS_TABLE_NAME")
+
         onCreate(db)
     }
 
@@ -45,6 +46,12 @@ class DBHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) :
     fun getData(): Cursor {
         val db = this.readableDatabase
         return db.rawQuery("SELECT * FROM $COMPLAINTS_TABLE_NAME", null)
+    }
+
+    fun delete(id: Int): Boolean {
+        val db = this.writableDatabase
+        return db.delete(COMPLAINTS_TABLE_NAME, "$ID_COL  =  $id", null) > 0;
+
     }
 
     fun getGroupedData(table: String, column: String): Cursor {

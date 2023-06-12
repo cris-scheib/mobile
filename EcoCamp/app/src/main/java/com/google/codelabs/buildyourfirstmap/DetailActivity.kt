@@ -20,6 +20,8 @@ class DetailActivity : AppCompatActivity() {
     private lateinit var complaintImage: ImageView
     private lateinit var complaintImageSec: ImageView
     private lateinit var buttonBack: Button
+    private lateinit var buttonDelete: Button
+    private var complaitId:Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,8 +33,14 @@ class DetailActivity : AppCompatActivity() {
         complaintImage = findViewById(R.id.compaint_image)
         complaintImageSec = findViewById(R.id.compaint_image_sec)
 
-        buttonBack = findViewById(R.id.button_back)
+        buttonBack = findViewById(R.id.button_new_back)
         buttonBack.setOnClickListener {
+            finish();
+        }
+
+        buttonDelete = findViewById(R.id.button_delete)
+        buttonDelete.setOnClickListener {
+            db.delete(complaitId)
             finish();
         }
 
@@ -45,6 +53,7 @@ class DetailActivity : AppCompatActivity() {
             val cursorComplaint: Cursor = db.getDataByPosition(latitude!!.toDouble(), longitude!!.toDouble());
             var complaint = cursorComplaint.moveToFirst()
             while (complaint) {
+                complaitId = cursorComplaint.getInt(cursorComplaint.getColumnIndex("id"))
                 val lat = cursorComplaint.getDouble(cursorComplaint.getColumnIndex("longitude"))
                 val long = cursorComplaint.getDouble(cursorComplaint.getColumnIndex("latitude"))
                 val name = cursorComplaint.getString(cursorComplaint.getColumnIndex("name"))
@@ -55,9 +64,6 @@ class DetailActivity : AppCompatActivity() {
                     cursorComplaint.getStringOrNull(cursorComplaint.getColumnIndex("image_sec"))
                 complaintName.setText(name);
                 complaintDescription.setText(description);
-
-                Log.i("LOG:lat", "$lat, ${latitude!!.toDouble()}")
-                Log.i("LOG:long", "$long, ${longitude!!.toDouble()}")
 
                 if(image != null) complaintImage.setImageBitmap(decodeBase64(image));
                 if(imageSec != null) complaintImageSec.setImageBitmap(decodeBase64(imageSec));

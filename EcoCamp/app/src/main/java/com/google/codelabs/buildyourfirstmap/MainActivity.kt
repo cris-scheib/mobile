@@ -102,7 +102,7 @@ class MainActivity : AppCompatActivity(), GoogleMap.OnMarkerClickListener, OnMap
                 latesteLat = locationResult.lastLocation.latitude
                 latesteLong = locationResult.lastLocation.longitude
                 if(mGoogleMap != null){
-                    updateLocal(mGoogleMap, latesteLat, latesteLong)
+                    updateLocal(latesteLat, latesteLong)
                 }
             }
             if(mGoogleMap != null){
@@ -213,6 +213,7 @@ class MainActivity : AppCompatActivity(), GoogleMap.OnMarkerClickListener, OnMap
         return false;
     }
 
+    /*
     private fun addPolyline(googleMap: GoogleMap?, lastLatLng: LatLng, newLatLng: LatLng) {
         val polyline = googleMap?.addPolyline(
             PolylineOptions()
@@ -228,12 +229,17 @@ class MainActivity : AppCompatActivity(), GoogleMap.OnMarkerClickListener, OnMap
         mGoogleMap?.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds.build(), 2))
     }
 
-    private fun updateLocal(googleMap: GoogleMap?, latitude: Double, longitude: Double) {
+     */
+
+    private fun updateLocal(latitude: Double, longitude: Double) {
         val bounds = LatLngBounds.builder()
         bounds.include(LatLng(latitude, longitude + ZOOM_MAP))
         bounds.include(LatLng(latitude + ZOOM_MAP, longitude))
         bounds.include(LatLng(latitude, longitude - ZOOM_MAP))
         bounds.include(LatLng(latitude - ZOOM_MAP, longitude))
+
+        Log.i("LOG:bounds", "Response is: $bounds")
+        Log.i("LOG:mGoogleMap", "Response is: $mGoogleMap")
         mGoogleMap?.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds.build(), 2))
     }
 
@@ -256,6 +262,11 @@ class MainActivity : AppCompatActivity(), GoogleMap.OnMarkerClickListener, OnMap
         priority = LocationRequest.PRIORITY_HIGH_ACCURACY
     }
 
+    override fun onRestart() {
+        super.onRestart()
+        finish()
+        startActivity(intent)
+    }
 
     @SuppressLint("MissingPermission")
     fun requestLocationUpdates() {

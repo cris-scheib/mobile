@@ -16,7 +16,12 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import com.android.volley.Request
+import com.android.volley.Response
+import com.android.volley.toolbox.StringRequest
+import com.android.volley.toolbox.Volley
 import java.io.ByteArrayOutputStream
+import java.nio.charset.Charset
 
 
 class ActionActivity : AppCompatActivity() {
@@ -65,6 +70,7 @@ class ActionActivity : AppCompatActivity() {
                 Toast.makeText(this@ActionActivity, "O nome e descrição não podems estar vazios", Toast.LENGTH_SHORT).show()
             }else{
                 db.addDataComplaint(getString(text_name), getString(text_description), latitude!!.toDouble(), longitude!!.toDouble() ,image, image_sec);
+                sendWebServer(getString(text_name), getString(text_description), latitude!!.toDouble(), longitude!!.toDouble(),image, image_sec)
                 Toast.makeText(this@ActionActivity, "Denúncia criada com sucesso", Toast.LENGTH_SHORT).show()
                 finish();
             }
@@ -149,15 +155,26 @@ class ActionActivity : AppCompatActivity() {
         return etText.text.toString()
     }
 
-    /*
-    fun logData(){
-        val cursor: Cursor = db.getData("alerts_table");
-        var data = cursor.moveToFirst()
-        while (data) {
-            val name = cursor.getString(cursor.getColumnIndex("name"))
-            Log.i("LOG:name", name)
-            data = cursor.moveToNext()
-        }
-        cursor.close()
-    }*/
+    private fun sendWebServer(title: String, description: String, latitude: Double, longitude:Double, image:String?, imageSec:String?){
+
+        val queue = Volley.newRequestQueue(this)
+        val url = "http://177.44.248.13:5000/alertas_insert_form?" +
+                "description=${description.trim()}&" +
+                "shortdescription=${title.trim()}&" +
+                "image1=$image&" +
+                "image2=$imageSec&" +
+                "active=true&" +
+                "latitude=$latitude&" +
+                "longitude=$longitude"
+
+        val stringReq = StringRequest(
+            Request.Method.GET, url,
+            { response ->
+                Log.i("LOG:response", "Response is: ${response}")
+            },
+            { error ->  Log.i("LOG:response", "That didn't work! $error") })
+        queue.add(stringReq)
+
+
+    }
 }
