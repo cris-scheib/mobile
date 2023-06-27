@@ -12,12 +12,19 @@ import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.android.volley.Request
+import com.android.volley.toolbox.StringRequest
+import com.android.volley.toolbox.Volley
 import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.GoogleMap.OnMapLoadedCallback
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
+import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
+import java.util.*
 import kotlin.math.abs
 
 
@@ -35,6 +42,7 @@ class MainActivity : AppCompatActivity(), GoogleMap.OnMarkerClickListener, OnMap
     private lateinit var buttonNew: Button
     private lateinit var buttonAbout: Button
     private var mGoogleMap: GoogleMap? = null
+    private var mapReady: Boolean = false
     private lateinit var db: DBHelper
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private var defaultLatLng: LatLng = LatLng(0.0, 0.0)
@@ -51,9 +59,14 @@ class MainActivity : AppCompatActivity(), GoogleMap.OnMarkerClickListener, OnMap
         db = DBHelper(this, null)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        val permissionState = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+        val permissionState =
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
         if (permissionState != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), REQUEST_PERMISSIONS_REQUEST_CODE)
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
+                REQUEST_PERMISSIONS_REQUEST_CODE
+            )
         }
 
         requestLocationUpdates()
@@ -89,23 +102,25 @@ class MainActivity : AppCompatActivity(), GoogleMap.OnMarkerClickListener, OnMap
         }
        */
 
-        val mapFragment = supportFragmentManager.findFragmentById(R.id.map_fragment) as? SupportMapFragment
+        val mapFragment =
+            supportFragmentManager.findFragmentById(R.id.map_fragment) as? SupportMapFragment
         mapFragment?.getMapAsync(this)
 
     }
 
-    private val mCallBack = object: LocationCallback(){
+    private val mCallBack = object : LocationCallback() {
         override fun onLocationResult(locationResult: LocationResult) {
             val precisionLat = locationResult.lastLocation.latitude - latesteLat
             val precisionLong = locationResult.lastLocation.longitude - latesteLong
-            if(abs(precisionLat) > PRECIS_TOL && abs(precisionLong) > PRECIS_TOL){
+            if (abs(precisionLat) > PRECIS_TOL && abs(precisionLong) > PRECIS_TOL) {
                 latesteLat = locationResult.lastLocation.latitude
                 latesteLong = locationResult.lastLocation.longitude
-                if(mGoogleMap != null){
+                if (mGoogleMap != null) {
                     updateLocal(latesteLat, latesteLong)
                 }
             }
-            if(mGoogleMap != null){
+            if (mGoogleMap != null) {
+                syncServer()
                 addMarkers(mGoogleMap)
             }
 
@@ -118,60 +133,10 @@ class MainActivity : AppCompatActivity(), GoogleMap.OnMarkerClickListener, OnMap
 
     }
 
-    /*fun loadData(){
-        val cursor: Cursor = db.getData();
-        var data = cursor.moveToFirst()
-        while (data) {
-            val lng = cursor.getDouble(cursor.getColumnIndex("longitude"))
-            val lat = cursor.getDouble(cursor.getColumnIndex("latitude"))
-            val id = cursor.getDouble(cursor.getColumnIndex("id"))
-
-            val marker = googleMap.addMarker(
-                MarkerOptions()
-                    .title(place.name)
-                    .position(LatLng(lat, lng) )
-                    .icon(bicycleIcon)
-            )
-
-            // Set place as the tag on the marker object so it can be referenced within
-            // MarkerInfoWindowAdapter
-            marker.tag = place
-
-
-            Log.i("LOG:long", "$lng")
-            Log.i("LOG:lat", "$lat")
-            Log.i("LOG:ID", "$id")
-            data = cursor.moveToNext()
-        }
-        cursor.close()
-    }*/
-
-    /*fun setRouteId(){
-        val cursor: Cursor = db.getLastData("routes_table");
-        if(cursor.moveToFirst()) {
-            val index = cursor.getColumnIndex("id")
-            routeId = if (index < 0) 1 else cursor.getInt(index) + 1
-            Log.i("LOG:route", "$routeId")
-        }else{
-            routeId = 1
-        }
-        cursor.close()
-        db.addDataRoute(routeId, "Route $routeId");
-    }*/
-
-   /* fun getLastPositionId(){
-        val cursor: Cursor = db.getLastData("positions_table");
-        if(cursor.moveToFirst()) {
-            val index = cursor.getColumnIndex("id")
-            lastPositionId = if (index < 0) 0 else cursor.getInt(index)
-        }else{
-            lastPositionId = 0
-        }
-        cursor.close()
-    }*/
-
     override fun onMapReady(googleMap: GoogleMap) {
         mGoogleMap = googleMap
+        mapReady = true
+
     }
 
     private val complaintIcon: BitmapDescriptor by lazy {
@@ -180,7 +145,7 @@ class MainActivity : AppCompatActivity(), GoogleMap.OnMarkerClickListener, OnMap
     }
 
 
-    private fun addMarkers(googleMap: GoogleMap?){
+    private fun addMarkers(googleMap: GoogleMap?) {
         googleMap?.clear()
         val cursor: Cursor = db.getData();
         var data = cursor.moveToFirst()
@@ -202,6 +167,27 @@ class MainActivity : AppCompatActivity(), GoogleMap.OnMarkerClickListener, OnMap
         googleMap?.setOnMarkerClickListener(this)
         cursor.close()
     }
+
+    private fun syncServer() {
+
+        val queue = Volley.newRequestQueue(this)
+        val url = "http://177.44.248.13:5000/alertas_json"
+
+        val stringReq = StringRequest(
+            Request.Method.GET, url,
+            { response ->
+                val gson =
+                    GsonBuilder().registerTypeAdapter(Alerts::class.java, CustomDeserializer())
+                        .create()
+                val type = object : TypeToken<List<Alerts>>() {}.type
+                val alerts = gson.fromJson<List<Alerts>>(response, type)
+                db.syncData(alerts)
+            },
+            { error -> Log.i("LOG:response", "That didn't work! $error") })
+        queue.add(stringReq)
+
+    }
+
 
     override fun onMarkerClick(marker: Marker): Boolean {
         val intent = Intent(this, DetailActivity::class.java)
@@ -238,14 +224,23 @@ class MainActivity : AppCompatActivity(), GoogleMap.OnMarkerClickListener, OnMap
         bounds.include(LatLng(latitude, longitude - ZOOM_MAP))
         bounds.include(LatLng(latitude - ZOOM_MAP, longitude))
 
-        Log.i("LOG:bounds", "Response is: $bounds")
-        Log.i("LOG:mGoogleMap", "Response is: $mGoogleMap")
-        mGoogleMap?.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds.build(), 2))
+        mGoogleMap?.setOnMapLoadedCallback(OnMapLoadedCallback {
+            mGoogleMap?.moveCamera(
+                CameraUpdateFactory.newLatLngBounds(
+                    bounds.build(),
+                    2
+                )
+            )
+        })
+
     }
 
 
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         when (requestCode) {
             REQUEST_PERMISSIONS_REQUEST_CODE -> {
@@ -282,27 +277,11 @@ class MainActivity : AppCompatActivity(), GoogleMap.OnMarkerClickListener, OnMap
         }
     }
 
-    /*private fun buildRoute(routeId: Int) {
-
-        val cursor: Cursor = db.getDataWhere("positions_table", " routeId  = $routeId");
-        var data = cursor.moveToFirst()
-        while (data) {
-            val lng = cursor.getDouble(cursor.getColumnIndex("longitude"))
-            val lat = cursor.getDouble(cursor.getColumnIndex("latitude"))
-
-
-            Log.i("LOG:long", "$lng")
-            Log.i("LOG:lat", "$lat")
-            data = cursor.moveToNext()
-        }
-        cursor.close()
-    }*/
-
     private fun removeLocationUpdates() {
         try {
             fusedLocationClient.removeLocationUpdates(mCallBack)
 
-        } catch (ex : SecurityException) {
+        } catch (ex: SecurityException) {
             Log.e("LOG", "Lost location permission. Could not remove updates. $ex")
         }
     }

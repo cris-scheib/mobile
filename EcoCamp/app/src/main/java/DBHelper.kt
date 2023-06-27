@@ -18,7 +18,8 @@ class DBHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) :
                 IMAGE + " TEXT, " +
                 IMAGE_SEC + " TEXT, " +
                 LONG_COl + " DECIMAL, " +
-                LAT_COL + " DECIMAL" + ");")
+                LAT_COL + " DECIMAL, " +
+                EXT_ID + " INTEGER NULL " + ");")
 
         db.execSQL(query)
     }
@@ -29,7 +30,14 @@ class DBHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) :
         onCreate(db)
     }
 
-    fun addDataComplaint(name: String, description: String, latitude: Double, longitude: Double, image: String?, image_sec: String?) {
+    fun addDataComplaint(
+        name: String,
+        description: String,
+        latitude: Double,
+        longitude: Double,
+        image: String?,
+        image_sec: String?
+    ) {
         val values = ContentValues()
         values.put(NAME, name)
         values.put(DESCRIPTION, description)
@@ -51,7 +59,6 @@ class DBHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) :
     fun delete(id: Int): Boolean {
         val db = this.writableDatabase
         return db.delete(COMPLAINTS_TABLE_NAME, "$ID_COL  =  $id", null) > 0;
-
     }
 
     fun getGroupedData(table: String, column: String): Cursor {
@@ -61,12 +68,51 @@ class DBHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) :
 
     fun getDataByPosition(latitude: Double, longitude: Double): Cursor {
         val db = this.readableDatabase
-        return db.rawQuery("SELECT * FROM $COMPLAINTS_TABLE_NAME WHERE  $LAT_COL = $latitude AND $LONG_COl = $longitude", null)
+        return db.rawQuery(
+            "SELECT * FROM $COMPLAINTS_TABLE_NAME WHERE  $LAT_COL = $latitude AND $LONG_COl = $longitude",
+            null
+        )
     }
 
     fun getLastData(table: String): Cursor {
         val db = this.readableDatabase
         return db.rawQuery("SELECT * FROM $table ORDER BY $ID_COL DESC LIMIT 1", null)
+    }
+
+    fun syncData(alerts: List<Alerts>) {
+        val db = this.readableDatabase
+        alerts.forEach {
+
+            if (!it.latitude.isNullOrEmpty() && !it.longitude.isNullOrEmpty()) {
+
+                val values = ContentValues()
+                values.put(NAME, it.name)
+                values.put(DESCRIPTION, it.description)
+                values.put(IMAGE, it.image1)
+                values.put(IMAGE_SEC, it.image2)
+                values.put(LONG_COl, it.longitude)
+                values.put(LAT_COL, it.latitude)
+                values.put(EXT_ID, it.id)
+
+                val cursor: Cursor = db.rawQuery(
+                    "SELECT count(*) FROM $COMPLAINTS_TABLE_NAME where $EXT_ID = ${it.id}",
+                    null
+                );
+                var data = cursor.moveToFirst();
+
+                if (cursor.getInt(0) == 0) {
+                    db.insert(COMPLAINTS_TABLE_NAME, null, values)
+                } else {
+                    db.update(
+                        COMPLAINTS_TABLE_NAME,
+                        values,
+                        "$EXT_ID = ?",
+                        arrayOf(it.id.toString())
+                    );
+                }
+            }
+        }
+        db.close();
     }
 
     companion object {
@@ -80,6 +126,7 @@ class DBHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) :
         const val LAT_COL = "latitude"
         const val IMAGE = "image"
         const val IMAGE_SEC = "image_sec"
+        const val EXT_ID = "external_id"
     }
 }
 

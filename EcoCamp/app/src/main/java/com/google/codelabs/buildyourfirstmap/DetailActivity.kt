@@ -4,6 +4,7 @@ import android.content.Intent
 import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Base64
 import android.util.Log
@@ -11,7 +12,10 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.database.getIntOrNull
 import androidx.core.database.getStringOrNull
+import kotlinx.android.synthetic.main.activity_action.*
 
 class DetailActivity : AppCompatActivity() {
 
@@ -21,7 +25,8 @@ class DetailActivity : AppCompatActivity() {
     private lateinit var complaintImageSec: ImageView
     private lateinit var buttonBack: Button
     private lateinit var buttonDelete: Button
-    private var complaitId:Int = 0
+    private var complaitId: Int = 0
+    private var external_id: Int? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,22 +43,18 @@ class DetailActivity : AppCompatActivity() {
             finish();
         }
 
-        buttonDelete = findViewById(R.id.button_delete)
-        buttonDelete.setOnClickListener {
-            db.delete(complaitId)
-            finish();
-        }
-
-
         val bundle = intent.extras
         if (bundle != null) {
             val latitude = bundle.getString("latitude")
             val longitude = bundle.getString("longitude")
 
-            val cursorComplaint: Cursor = db.getDataByPosition(latitude!!.toDouble(), longitude!!.toDouble());
+            val cursorComplaint: Cursor =
+                db.getDataByPosition(latitude!!.toDouble(), longitude!!.toDouble());
             var complaint = cursorComplaint.moveToFirst()
             while (complaint) {
                 complaitId = cursorComplaint.getInt(cursorComplaint.getColumnIndex("id"))
+                external_id =
+                    cursorComplaint.getIntOrNull(cursorComplaint.getColumnIndex("external_id"))
                 val lat = cursorComplaint.getDouble(cursorComplaint.getColumnIndex("longitude"))
                 val long = cursorComplaint.getDouble(cursorComplaint.getColumnIndex("latitude"))
                 val name = cursorComplaint.getString(cursorComplaint.getColumnIndex("name"))
@@ -65,9 +66,18 @@ class DetailActivity : AppCompatActivity() {
                 complaintName.setText(name);
                 complaintDescription.setText(description);
 
-                if(image != null) complaintImage.setImageBitmap(decodeBase64(image));
-                if(imageSec != null) complaintImageSec.setImageBitmap(decodeBase64(imageSec));
+                if (image != null) complaintImage.setImageBitmap(decodeBase64(image));
+                if (imageSec != null) complaintImageSec.setImageBitmap(decodeBase64(imageSec));
                 complaint = cursorComplaint.moveToNext()
+            }
+            if (external_id == null) {
+                buttonDelete = findViewById(R.id.button_delete)
+                buttonDelete.setOnClickListener {
+                    db.delete(complaitId)
+                    finish();
+                }
+            } else {
+                markButtonDisable(findViewById(R.id.button_delete));
             }
         }
     }
@@ -76,4 +86,12 @@ class DetailActivity : AppCompatActivity() {
         val decodedString: ByteArray = Base64.decode(image, Base64.DEFAULT)
         return BitmapFactory.decodeByteArray(decodedString, 0, decodedString.size)
     }
+
+    fun markButtonDisable(button: Button) {
+        button.isEnabled = false
+        button.setBackgroundColor(Color.parseColor("#bdbdbd"))
+        button.setTextColor(Color.parseColor("#FFFFFFFF"))
+    }
+
+
 }
