@@ -17,8 +17,8 @@ class DBHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) :
                 DESCRIPTION + " TEXT, " +
                 IMAGE + " TEXT, " +
                 IMAGE_SEC + " TEXT, " +
-                LONG_COl + " DECIMAL, " +
-                LAT_COL + " DECIMAL, " +
+                LONG_COl + " TEXT, " +
+                LAT_COL + " TEXT, " +
                 EXT_ID + " INTEGER NULL " + ");")
 
         db.execSQL(query)
@@ -95,7 +95,10 @@ class DBHelper(context: Context, factory: SQLiteDatabase.CursorFactory?) :
                 values.put(EXT_ID, it.id)
 
                 val cursor: Cursor = db.rawQuery(
-                    "SELECT count(*) FROM $COMPLAINTS_TABLE_NAME where $EXT_ID = ${it.id}",
+                    "SELECT count(*) FROM $COMPLAINTS_TABLE_NAME where " +
+                            "$LONG_COl = '${it.latitude}' AND " +
+                            "$LAT_COL = '${it.latitude}' AND " +
+                            "$NAME = '${it.name}' ",
                     null
                 );
                 var data = cursor.moveToFirst();

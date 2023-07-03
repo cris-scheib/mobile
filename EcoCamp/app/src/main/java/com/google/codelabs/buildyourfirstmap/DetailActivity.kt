@@ -66,8 +66,19 @@ class DetailActivity : AppCompatActivity() {
                 complaintName.setText(name);
                 complaintDescription.setText(description);
 
-                if (image != null) complaintImage.setImageBitmap(decodeBase64(image));
-                if (imageSec != null) complaintImageSec.setImageBitmap(decodeBase64(imageSec));
+                Log.i("LOG:response", "That didn't work! $image")
+                try {
+                    if (image != null) complaintImage.setImageBitmap(decodeBase64(image));
+                } catch (e: Exception) {
+                    Log.i("LOG:response", "Image invalid! $e")
+                }
+
+                try {
+                    if (imageSec != null) complaintImageSec.setImageBitmap(decodeBase64(imageSec));
+                } catch (e: Exception) {
+                    Log.i("LOG:response", "Image 2 invalid! $e")
+                }
+
                 complaint = cursorComplaint.moveToNext()
             }
             if (external_id == null) {

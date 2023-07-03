@@ -69,7 +69,7 @@ class ActionActivity : AppCompatActivity() {
             if(isEmpty(text_name) || isEmpty(text_description)){
                 Toast.makeText(this@ActionActivity, "O nome e descrição não podems estar vazios", Toast.LENGTH_SHORT).show()
             }else{
-                // db.addDataComplaint(getString(text_name), getString(text_description), latitude!!.toDouble(), longitude!!.toDouble() ,image, image_sec);
+                db.addDataComplaint(getString(text_name), getString(text_description), latitude!!.toDouble(), longitude!!.toDouble() ,image, image_sec);
                 sendWebServer(getString(text_name), getString(text_description), latitude!!.toDouble(), longitude!!.toDouble(),image, image_sec)
                 Toast.makeText(this@ActionActivity, "Denúncia criada com sucesso", Toast.LENGTH_SHORT).show()
                 finish();
